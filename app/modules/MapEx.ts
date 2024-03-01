@@ -1,14 +1,17 @@
 import MapboxDraw, {
   DrawCreateEvent,
-  DrawMode,
+  DrawDeleteEvent,
   DrawModeChangeEvent,
-  DrawSelectionChangeEvent,
   DrawUpdateEvent,
 } from "@mapbox/mapbox-gl-draw";
-import { Feature, Position } from "geojson";
-import { GeoJSONSource, Map } from "mapbox-gl";
-import { getCenter } from "../utils";
-import EventHandler from "./EventHandler";
+import { Feature, FeatureCollection, Position } from "geojson";
+import { uniq } from "lodash";
+import { Expression, Map, MapboxOptions } from "mapbox-gl";
+import pin from "../assets/pin.png";
+import { getCenter, randomColor } from "../utils";
+
+const imagePin = new Image();
+imagePin.src = pin.src;
 
 type LabelGetter = (feature: Feature) => Promise<string>;
 
@@ -18,12 +21,18 @@ type LabelOptions = {
 };
 
 class MapEx extends Map {
-  public modeChange = new EventHandler<DrawMode>();
-  public selectionChange = new EventHandler<string[]>();
   public labelGetter: LabelGetter = async () => `Untitled`;
   private draw: MapboxDraw;
+  private featureId = 0;
   private labelId = 0;
   private labelMap: Record<string, string> = {};
+
+  constructor(options?: MapboxOptions) {
+    super(options);
+    this.addImage("pin", imagePin);
+  }
+
+  //#region [ Draw Impl ]
 
   activateDraw() {
     if (!this.draw) {
@@ -34,8 +43,8 @@ class MapEx extends Map {
       this.addControl(this.draw);
       this.on("draw.create", this.handleDrawCreate);
       this.on("draw.update", this.handleDrawUpdate);
+      this.on("draw.delete", this.handleDrawDelete);
       this.on("draw.modechange", this.handleModeChange);
-      this.on("draw.selectionchange", this.handleDrawSelectionChange);
     } else {
       this.draw.changeMode("draw_polygon");
     }
@@ -43,12 +52,19 @@ class MapEx extends Map {
   }
 
   deleteDraw(id: string) {
-    const labelId = this.labelMap[id];
-    delete this.labelMap[id];
-    this.removeLabel(labelId);
+    const feature = this.draw.get(id);
+    if (!feature) return;
+
     this.draw.delete(id);
-    this.selectionChange.invoke(this.draw.getSelectedIds());
+    this.fire("draw.delete", {
+      type: "draw.delete",
+      features: [feature],
+    });
   }
+
+  //#endregion
+
+  //#region [ Label Impl ]
 
   addLabel({ position, text }: LabelOptions) {
     const id = `label-${++this.labelId}`;
@@ -67,8 +83,8 @@ class MapEx extends Map {
 
     this.addLayer({
       id,
-      type: "symbol",
       source: id,
+      type: "symbol",
       layout: {
         "text-field": ["get", "text"],
         "text-anchor": "center",
@@ -108,21 +124,67 @@ class MapEx extends Map {
     this.removeLayer(id);
   }
 
-  getLabel(id: string) {
-    return this.getSource(id) as GeoJSONSource;
+  //#endregion
+
+  //#region [ Feature Impl ]
+
+  addFeatures(data: FeatureCollection) {
+    const id = `feature-${++this.featureId}`;
+
+    const colors = uniq(
+      data.features.map(({ properties: { amenity } }) => amenity)
+    ).reduce<string[]>((a, c) => (a.push(c, randomColor(c)), a), []);
+
+    const colorMap = [
+      "match",
+      ["get", "amenity"],
+      ...colors,
+      "black",
+    ] as Expression;
+
+    this.addSource(id, { type: "geojson", data });
+
+    this.addLayer({
+      id: `fill-${id}`,
+      source: id,
+      type: "fill",
+      layout: {},
+      paint: {
+        "fill-color": colorMap,
+      },
+    });
+
+    this.addLayer({
+      id: `symbol-${id}`,
+      source: id,
+      type: "symbol",
+      layout: {
+        "text-field": ["get", "name"],
+        "text-anchor": "center",
+        "text-size": 12,
+      },
+      paint: {
+        "text-color": colorMap,
+        "text-halo-color": "#fff",
+        "text-halo-width": 1,
+      },
+    });
+
+    return id;
   }
+
+  removeFeatures(id: string) {
+    this.removeLayer(`fill-${id}`);
+    this.removeLayer(`symbol-${id}`);
+  }
+
+  //#endregion
+
+  //#region [ Event Handler ]
 
   private handleModeChange = ({ mode }: DrawModeChangeEvent) => {
     this.getCanvas().style.cursor =
       mode === "simple_select" ? "pointer" : "crosshair";
-    this.modeChange.invoke(mode);
-  };
-
-  private handleDrawSelectionChange = ({
-    features,
-  }: DrawSelectionChangeEvent) => {
-    if (!features) return;
-    this.selectionChange.invoke(features.map(({ id }) => `${id}`));
   };
 
   private handleDrawCreate = async ({
@@ -135,7 +197,6 @@ class MapEx extends Map {
       text,
     });
     this.labelMap[feature.id] = labelId;
-    this.selectionChange.invoke([`${feature.id}`]);
   };
 
   private handleDrawUpdate = ({ features: [feature] }: DrawUpdateEvent) => {
@@ -143,6 +204,14 @@ class MapEx extends Map {
     const labelId = this.labelMap[feature.id];
     this.updateLabel(labelId, { position: [lng, lat] });
   };
+
+  private handleDrawDelete = ({ features: [feature] }: DrawDeleteEvent) => {
+    const labelId = this.labelMap[feature.id];
+    delete this.labelMap[feature.id];
+    this.removeLabel(labelId);
+  };
+
+  //#endregion
 }
 
 export default MapEx;

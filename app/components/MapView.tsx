@@ -6,7 +6,7 @@ import MapEx from "../modules/MapEx";
 
 const MAP_CONTAINER = "map";
 
-mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!;
+mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
 type MapViewProps = {
   center?: LngLatLike;
