@@ -6,7 +6,7 @@ import MapboxDraw, {
 } from "@mapbox/mapbox-gl-draw";
 import { Feature, Polygon } from "geojson";
 import overpass from "../services/overpass";
-import { getCenter } from "../utils";
+import { getBounds, getCenter } from "../utils";
 import EventHandler from "./EventHandler";
 import MapEx from "./MapEx";
 
@@ -14,6 +14,7 @@ type FeatureInfo = {
   name: string;
   labelId: string;
   featuresId: string;
+  features: Feature[];
 };
 
 type LabelGetter = (feature: Feature) => Promise<string>;
@@ -64,6 +65,29 @@ class PolygonFeatures {
     });
   }
 
+  zoomToFeature(id: string, polygonId?: string) {
+    let feature: Feature;
+
+    if (polygonId) {
+      feature = this.featureMap[polygonId]?.features?.find((e) => e.id == id);
+    } else {
+      for (const { features } of Object.values(this.featureMap)) {
+        feature = features.find((e) => e.id == id);
+        if (feature) break;
+      }
+    }
+
+    if (feature) {
+      this.map.fitBounds(getBounds(feature.geometry), {
+        maxZoom: 20,
+      });
+
+      return true;
+    }
+
+    return false;
+  }
+
   private handleModeChange = ({ mode }: DrawModeChangeEvent) => {
     this.map.getCanvas().style.cursor =
       mode === "simple_select" ? "pointer" : "crosshair";
@@ -73,7 +97,7 @@ class PolygonFeatures {
     features: [feature],
   }: DrawCreateEvent) => {
     const { id, geometry } = feature as Feature<Polygon>;
-    const [name, featColl] = await Promise.all([
+    const [name, { features }] = await Promise.all([
       this.labelGetter(feature),
       overpass.getFeatureCollection(geometry),
     ]);
@@ -82,15 +106,20 @@ class PolygonFeatures {
       position: [lng, lat],
       text: name,
     });
-    const featuresId = this.map.addFeatures(featColl);
-    this.featureMap[id] = { name, labelId, featuresId };
+    const featuresId = this.map.addFeatures(features);
+    this.featureMap[id] = {
+      name,
+      labelId,
+      featuresId,
+      features,
+    };
     this.featuresChange.invoke({
       type: "create",
       id: `${id}`,
       data: {
         name,
         polygon: geometry,
-        features: featColl.features,
+        features: features,
       },
     });
   };
@@ -105,16 +134,20 @@ class PolygonFeatures {
     const { lng, lat } = getCenter(geometry);
     this.map.updateLabel(info.labelId, { position: [lng, lat] });
     this.map.removeFeatures(info.featuresId);
-    const featColl = await overpass.getFeatureCollection(geometry);
-    const featuresId = this.map.addFeatures(featColl);
-    this.featureMap[id] = { ...info, featuresId };
+    const { features } = await overpass.getFeatureCollection(geometry);
+    const featuresId = this.map.addFeatures(features);
+    this.featureMap[id] = {
+      ...info,
+      featuresId,
+      features,
+    };
     this.featuresChange.invoke({
       type: "update",
       id: `${id}`,
       data: {
         name: info.name,
         polygon: geometry,
-        features: featColl.features,
+        features,
       },
     });
   };

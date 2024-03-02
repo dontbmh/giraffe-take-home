@@ -1,4 +1,4 @@
-import { FeatureCollection, Position } from "geojson";
+import { Feature, Position } from "geojson";
 import { uniq } from "lodash";
 import { Expression, Map } from "mapbox-gl";
 import { getStringColor } from "../utils";
@@ -76,11 +76,11 @@ class MapEx extends Map {
 
   //#region [ Feature Impl ]
 
-  addFeatures(data: FeatureCollection) {
+  addFeatures(features: Feature[]) {
     const id = `feature-${++this.featureId}`;
 
     const colors = uniq(
-      data.features.map(({ properties: { amenity } }) => amenity)
+      features.map(({ properties: { amenity } }) => amenity)
     ).reduce<string[]>((a, c) => (a.push(c, getStringColor(c)), a), []);
 
     const colorMap = [
@@ -90,7 +90,13 @@ class MapEx extends Map {
       "black",
     ] as Expression;
 
-    this.addSource(id, { type: "geojson", data });
+    this.addSource(id, {
+      type: "geojson",
+      data: {
+        type: "FeatureCollection",
+        features,
+      },
+    });
 
     this.addLayer({
       id: `fill-${id}`,

@@ -1,7 +1,7 @@
 import { Geometry } from "geojson";
 import { LngLatBounds, LngLatLike } from "mapbox-gl";
 
-export const getCenter = (g: Geometry) => {
+export const getBounds = (g: Geometry) => {
   const b = new LngLatBounds();
 
   switch (g.type) {
@@ -24,8 +24,10 @@ export const getCenter = (g: Geometry) => {
       break;
   }
 
-  return b.getCenter();
+  return b;
 };
+
+export const getCenter = (g: Geometry) => getBounds(g).getCenter();
 
 export const getStringColor = (s: string) => {
   let hash = 0;

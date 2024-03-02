@@ -21,16 +21,28 @@ export default function Home() {
   const [selectedId, setSelectedId] = useState<string>();
   const [features, setFeatures] = useState<FeaturesCache>({});
   const { show, ...dialog } = useDialogInput("Untitled");
+  const currentFeatures = features[selectedId];
+
+  const handleFeatureLocate = useCallback(
+    (id: string) => toolRef.current.zoomToFeature(id, selectedId),
+    [selectedId]
+  );
 
   const handleFeaturesChange = useCallback(
     ({ type, id, data }: FeaturesChangeEvent) => {
       switch (type) {
         case "create":
         case "update":
-          setFeatures((prev) => ({ ...prev, [id]: data }));
+          setFeatures((prev) => ({
+            ...prev,
+            [id]: data,
+          }));
           break;
         case "delete":
-          setFeatures((prev) => ({ ...prev, [id]: null }));
+          setFeatures((prev) => ({
+            ...prev,
+            [id]: null,
+          }));
           break;
       }
     },
@@ -85,11 +97,12 @@ export default function Home() {
         />
       </div>
       <PolygonCreationDialog {...dialog} />
-      {!!features[selectedId] && (
+      {!!currentFeatures && (
         <FeaturesDataDialog
-          data={features[selectedId]}
+          data={currentFeatures}
           open={tableOpen}
           onClose={() => setTableOpen(false)}
+          onLocate={handleFeatureLocate}
         />
       )}
     </main>
