@@ -38,4 +38,6 @@ const MapView = forwardRef<Map, MapViewProps>(
   }
 );
 
+MapView.displayName = "MapView";
+
 export default memo(MapView);
