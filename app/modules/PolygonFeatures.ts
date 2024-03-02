@@ -79,7 +79,7 @@ class PolygonFeatures {
 
     if (feature) {
       this.map.fitBounds(getBounds(feature.geometry), {
-        maxZoom: 20,
+        maxZoom: 16,
       });
 
       return true;
