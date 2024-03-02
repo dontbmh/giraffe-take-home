@@ -1,51 +1,45 @@
 "use client";
 
-import {
-  DrawCreateEvent,
-  DrawDeleteEvent,
-  DrawSelectionChangeEvent,
-  DrawUpdateEvent,
-} from "@mapbox/mapbox-gl-draw";
-import { Polygon } from "geojson";
-import { useCallback, useRef, useState } from "react";
+import { DrawSelectionChangeEvent } from "@mapbox/mapbox-gl-draw";
+import { useCallback, useEffect, useRef, useState } from "react";
+import FeaturesDataDialog from "./components/FeaturesDataDialog";
 import MapView from "./components/MapView";
 import PolygonCreationDialog from "./components/PolygonCreationDialog";
 import Toolbar, { ToolId } from "./components/Toolbar";
-import useDialogDisplay from "./hooks/useDialogDisplay";
+import useDialogInput from "./hooks/useDialogInput";
 import MapEx from "./modules/MapEx";
-import overpass from "./services/overpass";
-import { Tags } from "./services/overpass/types";
+import PolygonFeatures, {
+  FeaturesChangeEvent,
+  FeaturesData,
+} from "./modules/PolygonFeatures";
+
+type FeaturesCache = Record<string, FeaturesData>;
 
 export default function Home() {
-  const mapRef = useRef<MapEx>(null);
-  const { current: polygonToFeatures } = useRef<Record<string, string>>({});
-  const [selection, setSelection] = useState<string[]>([]);
-  const [features, setFeatures] = useState<Record<string, Tags[]>>({});
-  const { show, ...dialog } = useDialogDisplay("Untitled");
+  const toolRef = useRef<PolygonFeatures>();
+  const [tableOpen, setTableOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string>();
+  const [features, setFeatures] = useState<FeaturesCache>({});
+  const { show, ...dialog } = useDialogInput("Untitled");
 
-  const handleDrawChange = useCallback(
-    async ({
-      type,
-      features: [feature],
-    }: DrawCreateEvent | DrawUpdateEvent | DrawDeleteEvent) => {
-      if (type === "draw.update" || type === "draw.delete")
-        mapRef.current.removeFeatures(polygonToFeatures[feature.id]);
-
-      if (type !== "draw.delete") {
-        try {
-          const polygon = feature.geometry as Polygon;
-          const features = await overpass.getFeatures(polygon);
-          const id = mapRef.current.addFeatures(features);
-          polygonToFeatures[feature.id] = id;
-        } catch (error) {}
+  const handleFeaturesChange = useCallback(
+    ({ type, id, data }: FeaturesChangeEvent) => {
+      switch (type) {
+        case "create":
+        case "update":
+          setFeatures((prev) => ({ ...prev, [id]: data }));
+          break;
+        case "delete":
+          setFeatures((prev) => ({ ...prev, [id]: null }));
+          break;
       }
     },
     []
   );
 
   const handleSelectionChange = useCallback(
-    ({ features }: DrawSelectionChangeEvent) =>
-      setSelection(features.map(({ id }) => `${id}`)),
+    ({ features: [feature] }: DrawSelectionChangeEvent) =>
+      setSelectedId(feature ? `${feature.id}` : null),
     []
   );
 
@@ -53,37 +47,51 @@ export default function Home() {
     async (id: ToolId) => {
       switch (id) {
         case "action-draw":
-          mapRef.current.activateDraw();
+          toolRef.current.activateDraw();
           break;
         case "action-delete":
-          selection.forEach((id) => mapRef.current.deleteDraw(id));
-          setSelection([]);
+          toolRef.current.deleteDraw(selectedId);
+          setSelectedId(null);
+          break;
+        case "action-table":
+          setTableOpen(true);
+          break;
       }
     },
-    [selection]
+    [selectedId]
   );
 
   const onRefChange = useCallback((map: MapEx) => {
-    mapRef.current = map;
     if (!map) return;
 
-    map.labelGetter = show;
-    map.on("draw.create", handleDrawChange);
-    map.on("draw.update", handleDrawChange);
-    map.on("draw.delete", handleDrawChange);
-    map.on("draw.selectionchange", handleSelectionChange);
+    const tool = new PolygonFeatures(map);
+    tool.labelGetter = show;
+    tool.featuresChange.add(handleFeaturesChange);
+    tool.map.on("draw.selectionchange", handleSelectionChange);
+    toolRef.current = tool;
   }, []);
+
+  useEffect(() => {
+    if (!selectedId) setTableOpen(false);
+  }, [selectedId]);
 
   return (
     <main>
       <MapView ref={onRefChange} />
       <div className="absolute bottom-10 left-1/2 -translate-x-1/2">
         <Toolbar
-          invisibility={selection.length ? [] : ["action-delete"]}
+          invisibility={selectedId ? [] : ["action-delete", "action-table"]}
           onToolClick={handleToolClick}
         />
       </div>
       <PolygonCreationDialog {...dialog} />
+      {!!features[selectedId] && (
+        <FeaturesDataDialog
+          data={features[selectedId]}
+          open={tableOpen}
+          onClose={() => setTableOpen(false)}
+        />
+      )}
     </main>
   );
 }

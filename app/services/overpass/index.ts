@@ -16,7 +16,7 @@ class Overpass {
     });
   }
 
-  async getFeatures({ coordinates }: Polygon) {
+  async getFeatureCollection({ coordinates }: Polygon) {
     const poly = coordinates
       .flat()
       .reduce<number[]>((a, [lng, lat]) => (a.push(lat, lng), a), [])

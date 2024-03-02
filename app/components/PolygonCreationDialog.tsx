@@ -8,13 +8,17 @@ import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
 
-type Props = {
+type PolygonCreationDialogProps = {
   open?: boolean;
   onClose?: () => void;
   onConfirm?: (name: string) => void;
 };
 
-const PolygonCreationDialog = ({ open, onClose, onConfirm }: Props) => (
+const PolygonCreationDialog = ({
+  open,
+  onClose,
+  onConfirm,
+}: PolygonCreationDialogProps) => (
   <Dialog
     open={!!open}
     onClose={onClose}

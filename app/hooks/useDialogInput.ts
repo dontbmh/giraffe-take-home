@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 
-const useDialogDisplay = <T>(defaultValue: T) => {
+const useDialogInput = <T>(defaultValue: T) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<(_: T) => void>();
 
@@ -36,4 +36,4 @@ const useDialogDisplay = <T>(defaultValue: T) => {
   return { open, onClose, onConfirm, show };
 };
 
-export default useDialogDisplay;
+export default useDialogInput;

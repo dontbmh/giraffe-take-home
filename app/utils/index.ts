@@ -27,7 +27,7 @@ export const getCenter = (g: Geometry) => {
   return b.getCenter();
 };
 
-export const randomColor = (s: string) => {
+export const getStringColor = (s: string) => {
   let hash = 0;
   s.split("").forEach((char) => {
     hash = char.charCodeAt(0) + ((hash << 5) - hash);
@@ -40,4 +40,26 @@ export const randomColor = (s: string) => {
   }
 
   return colour;
+};
+
+export const uniqOrderedArray = <T = any>(arr: T[]) => {
+  const map = new Map<T, number>();
+
+  arr.forEach((item) => {
+    if (!map.has(item)) {
+      map.set(item, 1);
+    } else {
+      map.set(item, map.get(item) + 1);
+    }
+  });
+
+  return Array.from(map)
+    .sort((a, b) => b[1] - a[1])
+    .map(([e]) => e);
+};
+
+export const getWindowDimensions = () => {
+  const { innerWidth: width, innerHeight: height } = window;
+
+  return { width, height };
 };

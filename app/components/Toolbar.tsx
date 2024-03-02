@@ -1,11 +1,11 @@
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
+import DescriptionOutlined from "@mui/icons-material/DescriptionOutlined";
 import PolylineOutlined from "@mui/icons-material/PolylineOutlined";
-
 import Box from "@mui/material/Box";
 import ButtonGroup from "@mui/material/ButtonGroup";
 import IconButton from "@mui/material/IconButton";
 
-export type ToolId = "action-draw" | "action-delete";
+export type ToolId = "action-draw" | "action-delete" | "action-table";
 
 type ToolbarProps = {
   invisibility?: ToolId[];
@@ -31,6 +31,15 @@ const Toolbar = ({ invisibility = [], onToolClick }: ToolbarProps) => (
           onClick={() => onToolClick?.("action-delete")}
         >
           <DeleteOutlined />
+        </IconButton>
+      )}
+      {!invisibility.includes("action-table") && (
+        <IconButton
+          className="rounded-sm"
+          size="large"
+          onClick={() => onToolClick?.("action-table")}
+        >
+          <DescriptionOutlined />
         </IconButton>
       )}
     </ButtonGroup>
