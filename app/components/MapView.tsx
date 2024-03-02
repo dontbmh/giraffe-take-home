@@ -1,10 +1,16 @@
 import mapboxgl, { LngLatLike, Map } from "mapbox-gl";
-import { forwardRef, memo, useImperativeHandle, useState } from "react";
+import {
+  forwardRef,
+  memo,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { DEFAULT_MAP_CENTER, DEFAULT_ZOOM_LEVEL } from "../constants";
-import useMountedEffect from "../hooks/useMountedEffect";
 import MapEx from "../modules/MapEx";
 
-const MAP_CONTAINER = "map";
+let id = 0;
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
@@ -16,13 +22,14 @@ type MapViewProps = {
 const MapView = forwardRef<Map, MapViewProps>(
   ({ center = DEFAULT_MAP_CENTER, zoom = DEFAULT_ZOOM_LEVEL }, ref) => {
     const [map, setMap] = useState<MapEx>();
+    const { current: container } = useRef(`map-${++id}`);
 
     useImperativeHandle(ref, () => map, [map]);
 
-    useMountedEffect(() => {
+    useEffect(() => {
       setMap(
         new MapEx({
-          container: MAP_CONTAINER,
+          container,
           center,
           zoom,
         })
@@ -30,10 +37,7 @@ const MapView = forwardRef<Map, MapViewProps>(
     }, []);
 
     return (
-      <div
-        id={MAP_CONTAINER}
-        className="absolute top-0 bottom-0 w-full h-screen"
-      />
+      <div id={container} className="absolute top-0 bottom-0 w-full h-screen" />
     );
   }
 );
