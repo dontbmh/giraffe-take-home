@@ -1,3 +1,15 @@
+## Core Implementation
+
+# components/MapView - A react component wrappering mapbox-gl
+
+# components/FeaturesDataDialog - The main component to display the feature data collection
+
+# modules/MapEX - An extensive class with the enablement of adding sources with ease
+
+# modules/PolygonFeatures - The tool allowing users to draw polygons and its corresponding features
+
+# services/overpass - A wrapper of the overpass APIs.
+
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started
