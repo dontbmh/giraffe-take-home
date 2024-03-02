@@ -1,4 +1,5 @@
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
+import Close from "@mui/icons-material/Close";
 import {
   Dialog,
   IconButton,
@@ -13,7 +14,7 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import MuiTableRow from "@mui/material/TableRow";
 import { upperCase } from "lodash";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FeaturesData } from "../modules/PolygonFeatures";
 import { uniqOrderedArray } from "../utils";
 import DraggablePaper from "./common/DraggablePaper";
@@ -74,6 +75,10 @@ const FeaturesDataDialog = ({
     [features, filter]
   );
 
+  useEffect(() => {
+    open && setFilter("");
+  }, [open]);
+
   return (
     <Dialog
       hideBackdrop
@@ -85,11 +90,16 @@ const FeaturesDataDialog = ({
         <Typography variant="h6" component="div">
           Polygon: {name}
         </Typography>
-        <TextField
-          label="Filter"
-          variant="outlined"
-          onChange={({ target }) => setFilter(target.value.toUpperCase())}
-        />
+        <div>
+          <TextField
+            label="Filter"
+            variant="outlined"
+            onChange={({ target }) => setFilter(target.value.toUpperCase())}
+          />
+          <IconButton className="ml-2" onClick={onClose}>
+            <Close />
+          </IconButton>
+        </div>
       </div>
       <TableContainer>
         <Table stickyHeader size="small">
