@@ -101,7 +101,7 @@ const FeaturesDataDialog = ({
           </IconButton>
         </div>
       </div>
-      <TableContainer>
+      <TableContainer className="h-full">
         <Table stickyHeader size="small">
           <TableHead>
             <TableRow>
