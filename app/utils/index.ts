@@ -20,7 +20,7 @@ export const getBounds = (g: Geometry) => {
       g.coordinates.flat(2).forEach((e) => b.extend(e as LngLatLike));
       break;
     case "GeometryCollection":
-      g.geometries.forEach((e) => b.extend(getCenter(e)));
+      g.geometries.forEach((e) => b.extend(getBounds(e)));
       break;
   }
 
